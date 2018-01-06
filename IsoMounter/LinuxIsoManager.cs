@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,10 +12,11 @@ using System.Runtime.InteropServices;
 namespace IsoMounter
 {
     public class LinuxIsoManager : IIsoMounter
-    {
-        [DllImport("libc", SetLastError = true)]
-        public static extern uint getuid();
+    { 
 
+	    [DllImport("libc", SetLastError = true)]
+        public static extern uint getuid();
+		
         #region Private Fields
 
         private readonly IEnvironmentInfo EnvironmentInfo;
@@ -26,6 +28,8 @@ namespace IsoMounter
         private readonly IProcessFactory ProcessFactory;
         private readonly string SudoCommand;
         private readonly string UmountCommand;
+
+		private readonly Dictionary<string, bool> _eventHandled = new Dictionary<string, bool>();
 
         #endregion
 
@@ -222,6 +226,13 @@ namespace IsoMounter
 
                 string path = test.Trim();
 
+                Logger.Debug(
+                    "[{0}] Searching path [{1}] for [{2}].",
+                    Name,
+                    path,
+                    name
+                );
+
                 if (!String.IsNullOrEmpty(path) && FileSystem.FileExists(path = Path.Combine(path, name))) {
                     return FileSystem.GetFullPath(path);
                 }
@@ -235,13 +246,13 @@ namespace IsoMounter
         private uint GetUID()
         {
 
-            var uid = getuid();
+			var uid = getuid();			
 
             Logger.Debug(
                 "[{0}] Our current UID is [{1}], GetUserId() returned [{2}].",
                 Name,
                 uid.ToString(),
-                uid
+                uid				
             );
 
             return uid;
@@ -253,8 +264,8 @@ namespace IsoMounter
 
             bool processFailed = false;
 
-            var process = ProcessFactory.Create(
-                new ProcessOptions {
+			var process = ProcessFactory.Create(
+				new ProcessOptions {
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -269,7 +280,38 @@ namespace IsoMounter
 
             try {
 
-                process.Start();
+				_eventHandled.Add(cmdArguments, false);
+				process.Exited += Process_Exited;
+
+				process.Start();
+
+				while (!_eventHandled[cmdArguments])
+				{
+					
+					/*elapsedTime += SLEEP_AMOUNT;
+					if (elapsedTime > 30000)
+					{
+						break;
+					}*/
+
+					Logger.Debug(
+						"[{0}] Waiting for process with arguments [{1}] to exit.",
+						Name,
+						cmdArguments
+					);
+
+					System.Threading.Tasks.Task.Delay(500).Wait();
+
+				}
+
+				_eventHandled.Remove(cmdArguments);
+
+				Logger.Debug(
+					"[{0}] Removed entry for process with arguments [{1}] from the dictionary, the dictionary currently contains [{2}] key/value pairs.",
+					Name,
+					cmdArguments,
+					_eventHandled.Count.ToString()
+				);
 
                 //StreamReader outputReader = process.StandardOutput.;
                 //StreamReader errorReader = process.StandardError;
@@ -475,7 +517,27 @@ namespace IsoMounter
 
         #endregion
 
-    }
+		#region Event Handlers
+
+    	private void Process_Exited(object sender, System.EventArgs e)
+		{
+
+			IProcess sourceProcess = (IProcess)sender;
+
+			_eventHandled[sourceProcess.StartInfo.Arguments] = true;
+
+			Logger.Debug(
+				"[{0}] Process with arguments [{1}] has exited, exit code is [{2}].",
+				Name,
+				sourceProcess.StartInfo.Arguments,
+				sourceProcess.ExitCode.ToString()
+			);
+					
+		}
+
+		#endregion
+
+	}
 
 }
 
