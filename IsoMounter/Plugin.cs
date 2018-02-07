@@ -24,7 +24,7 @@ namespace IsoMounter
         /// <value>The name.</value>
         public override string Name
         {
-            get { return "Iso Mounter"; }
+            get { return "ISO Mounter for Emby Server"; }
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace IsoMounter
         {
             get
             {
-                return "Mount and stream ISO contents";
+                return "Mount and stream ISO files on *nix based systems.";
             }
         }
     }
