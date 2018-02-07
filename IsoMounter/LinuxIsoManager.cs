@@ -23,6 +23,8 @@ namespace IsoMounter
 
         #region Private Fields
 
+        private readonly Version ImplementationVersion = new Version(2018, 2, 7, 1);
+
         private readonly IEnvironmentInfo EnvironmentInfo;
         private readonly bool ExecutablesAvailable;
         private readonly IFileSystem FileSystem;
@@ -33,7 +35,7 @@ namespace IsoMounter
         private readonly string SudoCommand;
         private readonly string UmountCommand;
 
-		private readonly Dictionary<string, bool> _eventHandled = new Dictionary<string, bool>();
+		private readonly Dictionary<string, bool> _eventHandled = new Dictionary<string, bool>();      
 
         #endregion
 
@@ -46,6 +48,12 @@ namespace IsoMounter
             FileSystem = fileSystem;
             Logger = logger;
             ProcessFactory = processFactory;
+
+            Logger.Info(
+                "[{0}] Implementation version is [{1}].",
+                Name,
+                ImplementationVersion.ToString()
+            );
 
             MountPointRoot = FileSystem.DirectorySeparatorChar + "tmp" + FileSystem.DirectorySeparatorChar + "Emby";
 
@@ -114,7 +122,7 @@ namespace IsoMounter
         }
 
         public string Name {
-            get { return "LinuxMount"; }
+            get { return "LinuxIsoManager"; }
         }
 
         public bool RequiresInstallation {
