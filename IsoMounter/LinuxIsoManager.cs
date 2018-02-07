@@ -12,11 +12,15 @@ using System.Runtime.InteropServices;
 namespace IsoMounter
 {
     public class LinuxIsoManager : IIsoMounter
-    { 
+    {
 
-	    [DllImport("libc", SetLastError = true)]
+        #region  Unmanaged Code API Calls
+
+        [DllImport("libc", SetLastError = true)]
         public static extern uint getuid();
-		
+
+        #endregion
+
         #region Private Fields
 
         private readonly IEnvironmentInfo EnvironmentInfo;
@@ -132,11 +136,28 @@ namespace IsoMounter
             );
 
             if (EnvironmentInfo.OperatingSystem == OperatingSystem.Linux) {
+
+                Logger.Debug(
+                    "[{0}] Operating System is [Linux].",
+                    Name
+                );
+
                 if (ExecutablesAvailable) {
-                    return string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+
+                    bool extensionCheck = string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+
+                    Logger.Debug(
+                        "[{0}] Executables are available, extension check will return [{1}].",
+                        Name,
+                        extensionCheck.ToString()
+                    );
+
+                    return extensionCheck;
+
                 } else {
                     return false;
                 }
+
             } else {
                 return false;
             }
