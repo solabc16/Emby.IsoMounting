@@ -126,22 +126,45 @@ namespace IsoMounter
         public bool CanMount(string path)
         {
 
-            if (EnvironmentInfo.OperatingSystem == OperatingSystem.Linux) {
-                Logger.Info(
-                    "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
-                    Name,
-                    path,
-                    Path.GetExtension(path),
-                    EnvironmentInfo.OperatingSystem,
-                    ExecutablesAvailable.ToString()
+            Logger.Info(
+                "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
+                Name,
+                path,
+                Path.GetExtension(path),
+                EnvironmentInfo.OperatingSystem,
+                ExecutablesAvailable.ToString()
+            );
+
+            if (EnvironmentInfo.OperatingSystem == OperatingSystem.Linux)
+            {
+
+                Logger.Debug(
+                    "[{0}] Operating System is [Linux].",
+                    Name
                 );
 
-                if (ExecutablesAvailable) {
-                    return string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
-                } else {
+                if (ExecutablesAvailable)
+                {
+
+                    bool extensionCheck = string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+
+                    Logger.Debug(
+                        "[{0}] Executables are available, extension check will return [{1}].",
+                        Name,
+                        extensionCheck.ToString()
+                    );
+
+                    return extensionCheck;
+
+                }
+                else
+                {
                     return false;
                 }
-            } else {
+
+            }
+            else
+            {
                 return false;
             }
 
