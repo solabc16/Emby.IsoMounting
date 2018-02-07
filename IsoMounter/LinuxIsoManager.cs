@@ -126,38 +126,21 @@ namespace IsoMounter
         public bool CanMount(string path)
         {
 
-            Logger.Info(
-                "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
-                Name,
-                path,
-                Path.GetExtension(path),
-                EnvironmentInfo.OperatingSystem,
-                ExecutablesAvailable.ToString()
-            );
-
             if (EnvironmentInfo.OperatingSystem == OperatingSystem.Linux) {
-
-                Logger.Debug(
-                    "[{0}] Operating System is [Linux].",
-                    Name
+                Logger.Info(
+                    "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
+                    Name,
+                    path,
+                    Path.GetExtension(path),
+                    EnvironmentInfo.OperatingSystem,
+                    ExecutablesAvailable.ToString()
                 );
 
                 if (ExecutablesAvailable) {
-
-                    bool extensionCheck = string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
-
-                    Logger.Debug(
-                        "[{0}] Executables are available, extension check will return [{1}].",
-                        Name,
-                        extensionCheck.ToString()
-                    );
-
-                    return extensionCheck;
-
+                    return string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
                 } else {
                     return false;
                 }
-
             } else {
                 return false;
             }
