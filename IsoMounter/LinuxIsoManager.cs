@@ -13,10 +13,17 @@ namespace IsoMounter
 {
     public class LinuxIsoManager : IMediaMounter
     {
+
+        #region  Unmanaged Code API Calls
+
         [DllImport("libc", SetLastError = true)]
         public static extern uint getuid();
 
+        #endregion
+
         #region Private Fields
+
+        private readonly Version ImplementationVersion = new Version(2018, 10, 6, 1);
 
         private readonly IEnvironmentInfo EnvironmentInfo;
         private readonly bool ExecutablesAvailable;
@@ -28,6 +35,8 @@ namespace IsoMounter
         private readonly string SudoCommand;
         private readonly string UmountCommand;
         private readonly IMediaEncoder mediaEncoder;
+
+		private readonly Dictionary<string, bool> _eventHandled = new Dictionary<string, bool>();      
 
         #endregion
 
@@ -41,6 +50,12 @@ namespace IsoMounter
             Logger = logger;
             ProcessFactory = processFactory;
             this.mediaEncoder = mediaEncoder;
+
+            Logger.Info(
+                "[{0}] Implementation version is [{1}].",
+                Name,
+                ImplementationVersion.ToString()
+            );
 
             MountPointRoot = FileSystem.DirectorySeparatorChar + "tmp" + FileSystem.DirectorySeparatorChar + "Emby";
 
@@ -129,25 +144,42 @@ namespace IsoMounter
         public bool CanMount(string path, string container)
         {
 
+            Logger.Info(
+                "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
+                Name,
+                path,
+                Path.GetExtension(path),
+                EnvironmentInfo.OperatingSystem,
+                ExecutablesAvailable.ToString()
+            );
+
             if (EnvironmentInfo.OperatingSystem == MediaBrowser.Model.System.OperatingSystem.Linux)
             {
-                Logger.Info(
-                    "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
-                    Name,
-                    path,
-                    Path.GetExtension(path),
-                    EnvironmentInfo.OperatingSystem,
-                    ExecutablesAvailable.ToString()
+
+                Logger.Debug(
+                    "[{0}] Operating System is [Linux].",
+                    Name
                 );
 
                 if (ExecutablesAvailable)
                 {
-                    return string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+
+                    bool extensionCheck = string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+
+                    Logger.Debug(
+                        "[{0}] Executables are available, extension check will return [{1}].",
+                        Name,
+                        extensionCheck.ToString()
+                    );
+
+                    return extensionCheck;
+
                 }
                 else
                 {
                     return false;
                 }
+
             }
             else
             {
@@ -170,11 +202,9 @@ namespace IsoMounter
             {
 
                 return Task.FromResult<IMediaMount>(mountedISO);
-
             }
             else
             {
-
                 throw new IOException(String.Format(
                     "An error occurred trying to mount image [$0].",
                     isoPath
@@ -245,6 +275,13 @@ namespace IsoMounter
 
                 string path = test.Trim();
 
+                Logger.Debug(
+                    "[{0}] Searching path [{1}] for [{2}].",
+                    Name,
+                    path,
+                    name
+                );
+
                 if (!String.IsNullOrEmpty(path) && FileSystem.FileExists(path = Path.Combine(path, name)))
                 {
                     return FileSystem.GetFullPath(path);
@@ -295,7 +332,38 @@ namespace IsoMounter
             try
             {
 
+				_eventHandled.Add(cmdArguments, false);
+				process.Exited += Process_Exited;
+
                 process.Start();
+
+				while (!_eventHandled[cmdArguments])
+				{
+					
+					/*elapsedTime += SLEEP_AMOUNT;
+					if (elapsedTime > 30000)
+					{
+						break;
+					}*/
+
+					Logger.Debug(
+						"[{0}] Waiting for process with arguments [{1}] to exit.",
+						Name,
+						cmdArguments
+					);
+
+					System.Threading.Tasks.Task.Delay(500).Wait();
+
+				}
+
+				_eventHandled.Remove(cmdArguments);
+
+				Logger.Debug(
+					"[{0}] Removed entry for process with arguments [{1}] from the dictionary, the dictionary currently contains [{2}] key/value pairs.",
+					Name,
+					cmdArguments,
+					_eventHandled.Count.ToString()
+				);
 
                 //StreamReader outputReader = process.StandardOutput.;
                 //StreamReader errorReader = process.StandardError;
@@ -315,7 +383,6 @@ namespace IsoMounter
             }
             catch (Exception ex)
             {
-
                 processFailed = true;
 
                 Logger.Debug(
@@ -358,7 +425,6 @@ namespace IsoMounter
                     Name,
                     mountPoint
                 );
-
             }
             else
             {
@@ -368,7 +434,6 @@ namespace IsoMounter
             }
 
             try
-            {
                 FileSystem.CreateDirectory(mountPoint);
             }
             catch (UnauthorizedAccessException)
@@ -400,14 +465,12 @@ namespace IsoMounter
 
             if (ExecuteCommand(cmdFilename, cmdArguments))
             {
-
                 Logger.Info(
                     "[{0}] ISO mount completed successfully.",
                     Name
                 );
 
                 mountedISO = new LinuxMount(this, mediaEncoder, isoPath, mountPoint, container);
-
             }
             else
             {
@@ -419,9 +482,7 @@ namespace IsoMounter
 
                 try
                 {
-
                     FileSystem.DeleteDirectory(mountPoint, false);
-
                 }
                 catch (Exception ex)
                 {
@@ -457,11 +518,9 @@ namespace IsoMounter
                     mount.IsoPath,
                     mount.MountedFolderPath
                 );
-
             }
             else
             {
-
                 throw new ArgumentNullException(nameof(mount));
 
             }
@@ -491,7 +550,6 @@ namespace IsoMounter
                     "[{0}] ISO unmount completed successfully.",
                     Name
                 );
-
             }
             else
             {
@@ -507,7 +565,6 @@ namespace IsoMounter
             {
 
                 FileSystem.DeleteDirectory(mount.MountedFolderPath, false);
-
             }
             catch (Exception ex)
             {
@@ -535,7 +592,27 @@ namespace IsoMounter
 
         #endregion
 
-    }
+		#region Event Handlers
+
+    	private void Process_Exited(object sender, System.EventArgs e)
+		{
+
+			IProcess sourceProcess = (IProcess)sender;
+
+			_eventHandled[sourceProcess.StartInfo.Arguments] = true;
+
+			Logger.Debug(
+				"[{0}] Process with arguments [{1}] has exited, exit code is [{2}].",
+				Name,
+				sourceProcess.StartInfo.Arguments,
+				sourceProcess.ExitCode.ToString()
+			);
+					
+		}
+
+		#endregion
+
+	}
 
 }
 
