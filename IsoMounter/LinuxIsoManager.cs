@@ -142,14 +142,16 @@ namespace IsoMounter
             }
         }
 
-        public bool CanMount(string path, string container)
+        public bool CanMount(ReadOnlySpan<char> path, ReadOnlySpan<char> container)
         {
+
+            var extension = Path.GetExtension(path.ToString());
 
             Logger.Info(
                 "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
                 Name,
-                path,
-                Path.GetExtension(path),
+                path.ToString(),
+                extension,             
                 EnvironmentInfo.OperatingSystem,
                 ExecutablesAvailable.ToString()
             );
@@ -165,7 +167,7 @@ namespace IsoMounter
                 if (ExecutablesAvailable)
                 {
 
-                    bool extensionCheck = string.Equals(Path.GetExtension(path), ".iso", StringComparison.OrdinalIgnoreCase);
+                    bool extensionCheck = string.Equals(extension, ".iso", StringComparison.OrdinalIgnoreCase);
 
                     Logger.Debug(
                         "[{0}] Executables are available, extension check will return [{1}].",
@@ -194,12 +196,12 @@ namespace IsoMounter
             return Task.FromResult(false);
         }
 
-        public Task<IMediaMount> Mount(string isoPath, string container, CancellationToken cancellationToken)
+        public Task<IMediaMount> Mount(ReadOnlyMemory<char> isoPath, ReadOnlyMemory<char> container, CancellationToken cancellationToken)
         {
 
             LinuxMount mountedISO;
 
-            if (MountISO(isoPath, container, out mountedISO))
+            if (MountISO(isoPath.ToString(), container.ToString(), out mountedISO))
             {
 
                 return Task.FromResult<IMediaMount>(mountedISO);
