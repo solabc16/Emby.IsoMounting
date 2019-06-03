@@ -24,7 +24,7 @@ namespace IsoMounter
 
         #region Private Fields
 
-        private readonly Version ImplementationVersion = new Version(2018, 10, 6, 1);
+        private readonly Version ImplementationVersion = new Version(2019, 6, 3, 1);
 
         private readonly IEnvironmentInfo EnvironmentInfo;
         private readonly bool ExecutablesAvailable;
