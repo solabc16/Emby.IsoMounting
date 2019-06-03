@@ -145,23 +145,23 @@ namespace IsoMounter
         public bool CanMount(ReadOnlySpan<char> path, ReadOnlySpan<char> container)
         {
 
-            var extension = Path.GetExtension(path.ToString());
-
-            Logger.Info(
-                "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
-                Name,
-                path.ToString(),
-                extension,             
-                EnvironmentInfo.OperatingSystem,
-                ExecutablesAvailable.ToString()
-            );
-
             if (EnvironmentInfo.OperatingSystem == MediaBrowser.Model.System.OperatingSystem.Linux)
             {
 
                 Logger.Debug(
                     "[{0}] Operating System is [Linux].",
                     Name
+                );
+
+                var extension = Path.GetExtension(path.ToString());
+
+                Logger.Info(
+                    "[{0}] Checking we can attempt to mount [{1}], Extension = [{2}], Operating System = [{3}], Executables Available = [{4}].",
+                    Name,
+                    path.ToString(),
+                    extension,             
+                    EnvironmentInfo.OperatingSystem,
+                    ExecutablesAvailable.ToString()
                 );
 
                 if (ExecutablesAvailable)
